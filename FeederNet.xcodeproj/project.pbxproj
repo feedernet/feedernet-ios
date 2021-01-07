@@ -19,6 +19,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A010EEDE25A7B77700DD373F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		A02474ED2586DBE800FE6247 /* FeederNet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FeederNet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A02474F02586DBE800FE6247 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A02474F22586DBE800FE6247 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -46,6 +47,7 @@
 		A02474E42586DBE800FE6247 = {
 			isa = PBXGroup;
 			children = (
+				A010EEDE25A7B77700DD373F /* README.md */,
 				A02474EF2586DBE800FE6247 /* FeederNet */,
 				A02474EE2586DBE800FE6247 /* Products */,
 			);
