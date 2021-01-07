@@ -4,5 +4,5 @@ A simple iOS application for transmitting WiFi credentials to a second generatio
 
 ## Screenshots
 
-![Discovered devices screenshot](screenshots/IMG_4935.PNG)
-![Enter credentials screenshot](screenshots/IMG_4936.PNG)
+<img alt="Discovered devices screenshot" src="screenshots/IMG_4935.PNG" width=300/>
+<img alt="Enter credentials screenshot" src="screenshots/IMG_4936.PNG" width=300/>
