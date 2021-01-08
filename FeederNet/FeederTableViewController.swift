@@ -8,6 +8,14 @@
 import UIKit
 import CoreBluetooth
 
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        return stride(from: 0, to: count, by: size).map {
+            Array(self[$0 ..< Swift.min($0 + size, count)])
+        }
+    }
+}
+
 class FeederTableViewController: UITableViewController, CBPeripheralDelegate, CBCentralManagerDelegate {
     
     //MARK: Properties
@@ -191,30 +199,38 @@ class FeederTableViewController: UITableViewController, CBPeripheralDelegate, CB
                                           options: [CBCentralManagerScanOptionAllowDuplicatesKey : true])
     }
     
-    private func writeWiFiCredentialsToChar(withCharacteristic characteristic: CBCharacteristic, withCredentials credentials: Data) {
+    private func writeWiFiCredentialsToChar(withCharacteristic characteristic: CBCharacteristic, withCredentials credentials: [[UInt8]]) {
         let selectedPeripheral = self.peripherals[self.selectedIndexPath.row]
         if characteristic.properties.contains(.writeWithoutResponse) {
-                selectedPeripheral.writeValue(credentials, for: characteristic, type: .withoutResponse)
+            for transmission in credentials {
+                selectedPeripheral.writeValue(Data(transmission), for: characteristic, type: .withoutResponse)
+            }
         }
     }
     
-    private func credentialsProcessor(ssid: String, password: String, token: String = "foobar") -> Data {
+    private func credentialsProcessor(ssid: String, password: String, token: String = "foobar", chunkSize: Int = 20) -> [[UInt8]] {
         let RECORD_SEPARATOR: UInt8 = 30
         let TRANSMISSION_BEGIN: UInt8 = 2
-        let TRANSMISSION_END_BLOCK: UInt8 = 23
         let TRANSMISSION_END_FINAL: UInt8 = 4
+        let TRANSMISSION_END_BLOCK: UInt8 = 23
         
-        let base64SSID = ssid.data(using: .utf8)?.base64EncodedString()
-        let base64Pass = password.data(using: .utf8)?.base64EncodedString()
-        let base64Token = token.data(using: .utf8)?.base64EncodedString()
+        let base64SSID = ssid.data(using: .utf8)!.base64EncodedString()
+        let base64Pass = password.data(using: .utf8)!.base64EncodedString()
+        let base64Token = token.data(using: .utf8)!.base64EncodedString()
         
-        var byteArray: [UInt8] = [TRANSMISSION_BEGIN]
-        byteArray += Array(base64SSID!.utf8)
-        byteArray += [RECORD_SEPARATOR]
-        byteArray += Array(base64Pass!.utf8)
-        byteArray += [RECORD_SEPARATOR]
-        byteArray += Array(base64Token!.utf8)
-        byteArray += [TRANSMISSION_END_BLOCK, TRANSMISSION_END_FINAL]
-        return Data(byteArray)
+        var credentialByteArray: [UInt8] = [TRANSMISSION_BEGIN]
+        credentialByteArray += Array(base64SSID.utf8)
+        credentialByteArray += [RECORD_SEPARATOR]
+        credentialByteArray += Array(base64Pass.utf8)
+        credentialByteArray += [RECORD_SEPARATOR]
+        credentialByteArray += Array(base64Token.utf8)
+        credentialByteArray += [TRANSMISSION_END_FINAL]
+        
+        var chunkedData = credentialByteArray.chunked(into: 19)
+        for i in 0 ..< chunkedData.count - 1 {
+            chunkedData[i] += [TRANSMISSION_END_BLOCK]
+            
+        }
+        return chunkedData
     }
 }
