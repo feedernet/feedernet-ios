@@ -20,6 +20,7 @@
 
 /* Begin PBXFileReference section */
 		A010EEDE25A7B77700DD373F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		A010EEE425A9034900DD373F /* PRIVACY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRIVACY.md; sourceTree = "<group>"; };
 		A02474ED2586DBE800FE6247 /* FeederNet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FeederNet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A02474F02586DBE800FE6247 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A02474F22586DBE800FE6247 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -47,6 +48,7 @@
 		A02474E42586DBE800FE6247 = {
 			isa = PBXGroup;
 			children = (
+				A010EEE425A9034900DD373F /* PRIVACY.md */,
 				A010EEDE25A7B77700DD373F /* README.md */,
 				A02474EF2586DBE800FE6247 /* FeederNet */,
 				A02474EE2586DBE800FE6247 /* Products */,
@@ -309,13 +311,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 58WY5ZYP98;
+				DEVELOPMENT_TEAM = N4PD58KL3N;
 				INFOPLIST_FILE = FeederNet/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.feedernet.FeederNet;
+				PRODUCT_BUNDLE_IDENTIFIER = io.feedernet.FeederNetConnect;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -328,13 +330,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 58WY5ZYP98;
+				DEVELOPMENT_TEAM = N4PD58KL3N;
 				INFOPLIST_FILE = FeederNet/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.feedernet.FeederNet;
+				PRODUCT_BUNDLE_IDENTIFIER = io.feedernet.FeederNetConnect;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
