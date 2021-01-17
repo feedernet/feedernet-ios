@@ -8,6 +8,19 @@
 import UIKit
 import CoreBluetooth
 
+let statusMap = [
+    "STATUS_WIFI_FOUND": "Discovered WiFi Network",
+    "STATUS_WIFI_CONN": "Successfully Joined Network",
+    "STATUS_WIFI_IP": "Received IP Address",
+    "STATUS_ACN_CONN": "Registering with FeederNet",
+    "STATUS_PN_CONN": "Discovering FeederNet Server",
+    "STATUS_SUCCESS": "Connected to FeederNet",
+    "ERROR_MQTT_CONN": "Broker Connection Failed",
+    "ERROR_ACN_CONN": "Unable to Connect to FeederNet",
+    "ERROR_WIFI_FOUND": "WiFi Network Not Found",
+    "ERROR_WIFI_CONN": "Error Connecting to WiFi"
+]
+
 extension Array {
     func chunked(into size: Int) -> [[Element]] {
         return stride(from: 0, to: count, by: size).map {
@@ -50,31 +63,21 @@ class FeederTableViewController: UITableViewController, CBPeripheralDelegate, CB
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
 
-        // We've found it so stop scan
-        self.centralManager.stopScan()
-
         // Save the peripheral instance
-        self.peripherals += [peripheral]
-        print("Found new peripheral: ", peripheral)
-        self.tableView.reloadData()
-        
-        //self.centralManager.connect(self.peripheral, options: nil)
-
+        peripheral.delegate = self
+        if !self.peripherals.contains(peripheral) {
+            self.peripherals += [peripheral]
+            print("Found new peripheral: ", peripheral)
+            self.tableView.reloadData()
+            
+            self.centralManager.connect(peripheral, options: nil)
+        }
     }
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        let selectedPeripheral = self.peripherals[self.selectedIndexPath.row]
-        selectedPeripheral.delegate = self
-        
-        if peripheral == selectedPeripheral {
-            print("Connected to \(peripheral)")
-            self.centralManager.stopScan()
-            barButtonItem.title = "Connected, checking services..."
-            peripheral.discoverServices([FeederPeripheral.secondGenerationServiceUUID])
-            
-            // Get ViewCell for status updates.
-            
-        }
+        print("Connected to \(peripheral)")
+        self.tableView.reloadData()
+        peripheral.discoverServices([FeederPeripheral.secondGenerationServiceUUID])
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
@@ -82,7 +85,6 @@ class FeederTableViewController: UITableViewController, CBPeripheralDelegate, CB
             for service in services {
                 if service.uuid == FeederPeripheral.secondGenerationServiceUUID {
                     print("Second generation feeder service found")
-                    barButtonItem.title = "Checking feeder characteristics..."
                     //Start discovery of characteristics
                     peripheral.discoverCharacteristics(
                         [
@@ -97,56 +99,32 @@ class FeederTableViewController: UITableViewController, CBPeripheralDelegate, CB
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        let selectedPeripheral = self.peripherals[self.selectedIndexPath.row]
-        
         if let characteristics = service.characteristics {
             for characteristic in characteristics {
                 if characteristic.uuid == FeederPeripheral.deviceIdCharacteristicUUID {
                     print("DeviceID characteristic found")
                 } else if characteristic.uuid == FeederPeripheral.statusUpdateCharacteristicUUID {
-                    print("StatusUpdate characteristic found")
+                    print("StatusUpdate characteristic found, subscribing to updates")
+                    peripheral.setNotifyValue(true, for: characteristic)
+                    self.tableView.reloadData()
                 } else if characteristic.uuid == FeederPeripheral.wifiCredentialsCharacteristicUUID {
-                    print("WiFiCrentials characteristic found, prompting for credentials")
-                    barButtonItem.title = "Ready for credentials."
-                    let cell:FeederTableViewCell = tableView.cellForRow(at: self.selectedIndexPath) as! FeederTableViewCell
-                    
-                    // Create alert prompt for credentials collection
-                    let alert = UIAlertController(
-                        title: "WiFi Credentials",
-                        message: "Please enter the credentials to send to \(selectedPeripheral.name ?? "Unknown Device").",
-                        preferredStyle: .alert)
-                    
-                    alert.addTextField { (textField) in
-                        textField.placeholder = "Network SSID"
-                    }
-                    alert.addTextField { (textField) in
-                        textField.placeholder = "Password"
-                        textField.isSecureTextEntry = true
-                    }
-                    
-                    let confirmAction = UIAlertAction(title: "Save", style: .default) { [weak alert] _ in
-                        guard let alert = alert, let ssidField = alert.textFields?.first, let passField = alert.textFields?[1] else { return }
-                        
-                        let creds = self.credentialsProcessor(ssid: ssidField.text!, password: passField.text!)
-                        print("Sending credentials to feeder")
-                        self.barButtonItem.title = "Sending credentials..."
-                        self.writeWiFiCredentialsToChar(withCharacteristic: characteristic, withCredentials: creds)
-                        
-                        cell.activityIndicator.stopAnimating()
-                        self.startBluetoothScan()
-                        self.tableView.deselectRow(at: self.selectedIndexPath, animated: true)
-                    }
-                    alert.addAction(confirmAction)
-                    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { _ in
-                        cell.activityIndicator.stopAnimating()
-                        self.startBluetoothScan()
-                        self.tableView.deselectRow(at: self.selectedIndexPath, animated: true)
-                    }
-                    alert.addAction(cancelAction)
-                    present(alert, animated: true, completion: nil)
+                    print("WiFiCrentials characteristic found.")
                 }
             }
         }
+    }
+    
+    public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        let rxData = characteristic.value
+        if let rxData = rxData {
+            let numberOfBytes = rxData.count
+            var rxByteArray = [UInt8](repeating: 0, count: numberOfBytes)
+            (rxData as NSData).getBytes(&rxByteArray, length: numberOfBytes)
+            if let string = String(bytes: rxByteArray, encoding: .utf8) {
+                print("Refreshing status for \(peripheral.name!): \(string)")
+            }
+        }
+        self.tableView.reloadData()
     }
 
     // MARK: - Table view data source
@@ -171,8 +149,34 @@ class FeederTableViewController: UITableViewController, CBPeripheralDelegate, CB
         // Fetch the appropriate feeder for the data source layout.
         let peripheral = self.peripherals[indexPath.row]
         
-        cell.peripheralName.text = "Smart Feeder (SF20A)"
+        cell.peripheralName.text = "Smart Feeder"
         cell.peripheralIdentity.text = peripheral.name
+        
+        let statusCharacteristic = retrieveCredentialFromFeeder(peripheral: peripheral, characteristicUuid: FeederPeripheral.statusUpdateCharacteristicUUID)
+        if statusCharacteristic != nil {
+            let rxData = statusCharacteristic!.value
+            if let rxData = rxData {
+                let numberOfBytes = rxData.count
+                var rxByteArray = [UInt8](repeating: 0, count: numberOfBytes)
+                (rxData as NSData).getBytes(&rxByteArray, length: numberOfBytes)
+                if let string = String(bytes: rxByteArray, encoding: .utf8) {
+                    cell.statusLabel.text = statusMap[string] ?? "Unknown Status \(string)"
+                    cell.statusColor.textColor = string.contains("ERROR") ? .systemRed : .systemOrange
+                    if string == "STATUS_SUCCESS" {
+                        cell.statusColor.textColor = .systemGreen
+                        cell.activityIndicator.stopAnimating()
+                    }
+                }
+            }
+        } else if [CBPeripheralState.disconnected, CBPeripheralState.connecting].contains(peripheral.state) {
+            cell.statusLabel.text = "Bluetooth Disconnected"
+            cell.statusColor.textColor = .systemRed
+            cell.activityIndicator.stopAnimating()
+        } else {
+            cell.statusLabel.text = "Connected to Device"
+            cell.statusColor.textColor = .systemOrange
+            cell.activityIndicator.stopAnimating()
+        }
 
         return cell
     }
@@ -185,7 +189,51 @@ class FeederTableViewController: UITableViewController, CBPeripheralDelegate, CB
         cell.activityIndicator.startAnimating()
         
         let targetPeripheral = self.peripherals[indexPath.row]
-        self.centralManager.connect(targetPeripheral, options: nil)
+        
+        
+        // We need to make sure that we actually have the right services and characteristics discovered.
+        // Theoretically, the cell should be disabled until we find these, but it never hurts to double
+        // check.
+        let wifiCharacteristic = retrieveCredentialFromFeeder(peripheral: targetPeripheral, characteristicUuid: FeederPeripheral.wifiCredentialsCharacteristicUUID)
+        if wifiCharacteristic == nil {
+            let alert = UIAlertController(
+                title: "Device Not Ready!",
+                message: "Please wait a few more seconds before attemping to communicate.",
+                preferredStyle: .alert)
+            present(alert, animated: true, completion: nil)
+            return
+        }
+        
+        // Create alert prompt for credentials collection
+        let alert = UIAlertController(
+            title: "WiFi Credentials",
+            message: "Please enter the credentials to send to \(targetPeripheral.name ?? "Unknown Device").",
+            preferredStyle: .alert)
+        
+        alert.addTextField { (textField) in
+            textField.placeholder = "Network SSID"
+        }
+        alert.addTextField { (textField) in
+            textField.placeholder = "Password"
+            textField.isSecureTextEntry = true
+        }
+        
+        let confirmAction = UIAlertAction(title: "Save", style: .default) { [weak alert] _ in
+            guard let alert = alert, let ssidField = alert.textFields?.first, let passField = alert.textFields?[1] else { return }
+            
+            let creds = self.credentialsProcessor(ssid: ssidField.text!, password: passField.text!)
+            print("Sending credentials to feeder")
+            self.writeWiFiCredentialsToChar(withPeripheral: targetPeripheral, withCharacteristic: wifiCharacteristic!, withCredentials: creds)
+            
+            self.tableView.deselectRow(at: indexPath, animated: true)
+        }
+        alert.addAction(confirmAction)
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            self.tableView.deselectRow(at: indexPath, animated: true)
+            cell.activityIndicator.stopAnimating()
+        }
+        alert.addAction(cancelAction)
+        present(alert, animated: true, completion: nil)
         
     }
     
@@ -199,11 +247,10 @@ class FeederTableViewController: UITableViewController, CBPeripheralDelegate, CB
                                           options: [CBCentralManagerScanOptionAllowDuplicatesKey : true])
     }
     
-    private func writeWiFiCredentialsToChar(withCharacteristic characteristic: CBCharacteristic, withCredentials credentials: [[UInt8]]) {
-        let selectedPeripheral = self.peripherals[self.selectedIndexPath.row]
+    private func writeWiFiCredentialsToChar(withPeripheral peripheral: CBPeripheral, withCharacteristic characteristic: CBCharacteristic, withCredentials credentials: [[UInt8]]) {
         if characteristic.properties.contains(.writeWithoutResponse) {
             for transmission in credentials {
-                selectedPeripheral.writeValue(Data(transmission), for: characteristic, type: .withoutResponse)
+                peripheral.writeValue(Data(transmission), for: characteristic, type: .withoutResponse)
             }
         }
     }
@@ -232,5 +279,23 @@ class FeederTableViewController: UITableViewController, CBPeripheralDelegate, CB
             
         }
         return chunkedData
+    }
+    
+    private func retrieveCredentialFromFeeder(peripheral: CBPeripheral, characteristicUuid: CBUUID) -> CBCharacteristic? {
+        guard let services = peripheral.services, let serviceIdx = services.firstIndex(
+                where: { $0.uuid == FeederPeripheral.secondGenerationServiceUUID }
+        ) else {
+            return nil
+        }
+        
+        guard let characteristics = services[serviceIdx].characteristics, let wifiCharIdx = characteristics.firstIndex(
+            where: { $0.uuid == characteristicUuid }
+        ) else {
+            return nil
+        }
+        
+        
+        
+        return peripheral.services![serviceIdx].characteristics![wifiCharIdx]
     }
 }

@@ -13,10 +13,21 @@ class FeederTableViewCell: UITableViewCell {
     @IBOutlet weak var peripheralName: UILabel!
     @IBOutlet weak var peripheralIdentity: UILabel!
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
+    @IBOutlet weak var statusColor: UILabel!
+    @IBOutlet weak var statusLabel: UILabel!
     
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
+    }
+    
+    override func prepareForReuse() {
+        let wasAnimating = self.activityIndicator.isAnimating
+        super.prepareForReuse()
+        
+        if wasAnimating {
+            activityIndicator.startAnimating()
+        }
     }
 
     override func setSelected(_ selected: Bool, animated: Bool) {

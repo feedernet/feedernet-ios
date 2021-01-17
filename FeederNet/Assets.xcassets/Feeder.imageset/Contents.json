@@ -15,7 +15,7 @@
       "scale" : "1x"
     },
     {
-      "filename" : "feeder_white.png",
+      "filename" : "ios_feeder.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
@@ -26,7 +26,6 @@
           "value" : "dark"
         }
       ],
-      "filename" : "feeder_black.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
